@@ -1,0 +1,82 @@
+library(shiny)
+library(ggplot2)
+library(plotly)
+
+# Define the UI
+ui <- fluidPage(
+  
+  # Sidebar panel for input controls
+  sidebarLayout(
+    sidebarPanel(
+      # Add a checkbox for selecting species
+      checkboxGroupInput("species", "Select Species:", 
+                         choices = unique(iris$Species), 
+                         selected = unique(iris$Species)),
+      # Add a selectInput for property
+      selectInput("property", "Property:", 
+                  choices = c("Sepal Length", "Sepal Width", 
+                              "Petal Length", "Petal Width"), 
+                  selected = "Sepal Length"),
+      # Add a plotlyOutput for the violin/box plot
+      plotlyOutput("violin_box_plot")
+    ),
+    # Main panel for displaying outputs
+    mainPanel(
+      # Add a plotlyOutput for the scatter plot
+      plotlyOutput("scatter_plot")
+    )
+  )
+)
+
+# Define the server
+server <- function(input, output, session) {
+  
+  # Create reactive data for filtered data
+  filtered_data <- reactive({
+    iris %>% 
+      filter(Species %in% input$species) %>% 
+      select(Species, input$property)
+  })
+  
+  # Create reactive output for violin/box plot
+  output$violin_box_plot <- renderPlotly({
+    # Create violin/box plot
+    ggplot(filtered_data(), aes(x = Species, y = !!sym(input$property))) +
+      geom_violin() +
+      geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +
+      labs(x = NULL, y = input$property) +
+      ggtitle("Violin/Box Plot")
+    
+  }) %>%
+    # Add panning, zooming, and resizing functionality
+    onRender("
+             function(el, x) {
+             var gd = document.getElementById(el.id);
+             gd.on('plotly_relayout', function(eventdata){
+             var xrange = eventdata['xaxis.range'];
+             var yrange = eventdata['yaxis.range'];
+             Plotly.relayout(gd, 'xaxis.range', xrange);
+             Plotly.relayout(gd, 'yaxis.range', yrange);
+             });
+             Plotly.newPlot(el.id, x.data, x.layout).then(function() {
+             var gd = document.getElementById(el.id);
+             gd.on('plotly_relayout', function(eventdata){
+             var xrange = eventdata['xaxis.range'];
+             var yrange = eventdata['yaxis.range'];
+             Plotly.relayout(gd, 'xaxis.range', xrange);
+             Plotly.relayout(gd, 'yaxis.range', yrange);
+             });
+             });
+             }
+             ")
+  
+  # Create reactive output for scatter plot
+  output$scatter_plot <- renderPlotly({
+    # Create scatter plot
+    ggplot(filtered_data(), aes(x = !!sym(input$property), y = Species, 
+                                 fill = Species)) +
+      geom_point(shape = 21, size = 8) +
+      labs(x = input$property, y = NULL, fill = NULL) +
+      scale_fill_manual(values = c("#E41A1C", "#377EB8", "#4DAF4A")) +
+      ggtitle("Scatter Plot")
+  }) %>%

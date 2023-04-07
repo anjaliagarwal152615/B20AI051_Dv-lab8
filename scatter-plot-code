@@ -1,0 +1,68 @@
+library(shiny)
+library(ggplot2)
+
+# Define the UI
+ui <- fluidPage(
+  
+  # Title of the app
+  titlePanel("Iris Dataset Scatter Plot"),
+  
+  # Sidebar with input options
+  sidebarLayout(
+    sidebarPanel(
+      # Select input for x-axis
+      selectInput("xaxis", "Select x-axis variable:", choices = c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width"), selected = "Sepal.Length"),
+      
+      # Select input for y-axis
+      selectInput("yaxis", "Select y-axis variable:", choices = c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width"), selected = "Sepal.Width"),
+      
+      # Checkbox input for filtering by species
+      checkboxGroupInput("species", "Select species to show:", choices = unique(iris$Species), selected = unique(iris$Species)),
+      
+      # Color input for each species
+      selectInput("color1", "Select color for setosa", choices = c("red", "green", "blue", "black"), selected = "red"),
+      selectInput("color2", "Select color for versicolor", choices = c("red", "green", "blue", "black"), selected = "green"),
+      selectInput("color3", "Select color for virginica", choices = c("red", "green", "blue", "black"), selected = "blue"),
+      
+      # Point size input for each species
+      sliderInput("size1", "Select size for setosa", min = 1, max = 10, value = 5),
+      sliderInput("size2", "Select size for versicolor", min = 1, max = 10, value = 5),
+      sliderInput("size3", "Select size for virginica", min = 1, max = 10, value = 5),
+      
+      # Point shape input for each species
+      selectInput("shape1", "Select shape for setosa", choices = c("circle", "square", "triangle"), selected = "circle"),
+      selectInput("shape2", "Select shape for versicolor", choices = c("circle", "square", "triangle"), selected = "square"),
+      selectInput("shape3", "Select shape for virginica", choices = c("circle", "square", "triangle"), selected = "triangle")
+    ),
+    
+    # Main panel with output plot
+    mainPanel(
+      plotOutput("scatterplot")
+    )
+  )
+)
+
+# Define the server
+# Define the server
+server <- function(input, output) {
+  
+  # Create a reactive subset of the iris data based on user input
+  filtered_iris <- reactive({
+    iris[iris$Species %in% input$species, ]
+  })
+  
+  # Create a ggplot object based on user input
+  output$scatterplot <- renderPlot({
+    ggplot(filtered_iris(), aes_string(x = input$xaxis, y = input$yaxis, color = "Species", size = "Species", shape = "Species")) +
+      geom_point() +
+      scale_color_manual(values = c(input$color1, input$color2, input$color3)) +
+      scale_size_manual(values = c(input$size1, input$size2, input$size3)) +
+      scale_shape_manual(values = c(input$shape1, input$shape2, input$shape3)) +
+      labs(title = "Scatter Plot of Iris Dataset",
+           x = input$xaxis,
+           y = input$yaxis)
+  })
+}
+
+# Run the app
+shinyApp(ui, server)
